@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:jdbc="http://www.springframework.org/schema/jdbc" xmlns:p="http://www.springframework.org/schema/p"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+		                   http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.0.xsd
+		                   http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.0.xsd
+		                   http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.0.xsd
+		                   http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc-4.0.xsd
+		                   http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.0.xsd">
+
+	<context:property-placeholder location="classpath:redis/redis.properties"/>
+
+	<context:component-scan base-package="com.paipianwang.pat.common.cache" />
+	
+	<bean id="stringRedisSerializer" class="org.springframework.data.redis.serializer.StringRedisSerializer" />
+	
+	<bean id="jacksonSerializer" class="com.paipianwang.pat.common.cache.Serializer.GenericJackson2JsonRedisSerializer" />
+	
+	<bean class="org.springframework.data.redis.serializer.JacksonJsonRedisSerializer" id="jacksonJsonRedisSerializer">
+        <constructor-arg type="java.lang.Class" value="java.lang.Object"/>
+    </bean>
+	
+	<bean id="jdkSerializationRedisSerializer" class="org.springframework.data.redis.serializer.JdkSerializationRedisSerializer" />
+	
+	<!-- redis 配置 -->
+	<bean id="jedisPoolConfig" class="redis.clients.jedis.JedisPoolConfig">
+		<!-- 最大连接数 -->
+		<property name="maxTotal" value="${redis.maxTotal}" />
+		<!-- 最大空闲数 -->
+		<property name="maxIdle" value="${redis.maxIdle}" />
+		<!-- 每次释放连接的最大数目 -->
+		<property name="numTestsPerEvictionRun" value="${redis.numTestsPerEvictionRun}"/>
+		<!-- 释放连接的扫描间隔（毫秒） -->
+		<property name="timeBetweenEvictionRunsMillis" value="${redis.timeBetweenEvictionRunsMillis}"/>
+		<!-- 连接最小空闲时间 -->
+		<property name="minEvictableIdleTimeMillis" value="${redis.minEvictableIdleTimeMillis}" />
+		<!-- 连接空闲多久后 释放，当空闲时间 > 该值 且 空闲连接 > 最大空闲连接数 时，直接释放 -->
+		<property name="softMinEvictableIdleTimeMillis" value="${redis.softMinEvictableIdleTimeMillis}"/>
+		<!-- 最大等待时间 -->
+		<property name="maxWaitMillis" value="${redis.maxWaitMillis}"/>
+		<!-- 获取连接时检查有效性，默认false -->
+		<property name="testOnBorrow" value="${redis.testOnBorrow}"/>
+		<!-- 空闲时检查有效性，默认false -->
+		<property name="testWhileIdle" value="${redis.testWhileIdle}"/>
+		<!-- 连接耗尽是否阻塞，false报异常，true阻塞直到超时，默认true -->
+		<property name="blockWhenExhausted" value="${blockWhenExhausted}"/>
+	</bean>
+	
+	<bean id="jedisPool" class="redis.clients.jedis.JedisPool">
+		<constructor-arg index="0" ref="jedisPoolConfig" />
+		<constructor-arg index="1" value="${redis.server}" />
+		<constructor-arg index="2" value="6379" />
+		<constructor-arg index="3" value="${redis.timeout}" />
+		<constructor-arg index="4" value="${redis.password}" />
+	</bean>
+	
+	<bean id="redisConnectionFactory" class="org.springframework.data.redis.connection.jedis.JedisConnectionFactory" 
+		  p:hostName="${redis.server}" 
+          p:port="6379"
+          p:timeout="${redis.timeout}"
+          p:password="${redis.password}"
+          p:poolConfig-ref="jedisPoolConfig" 
+          p:usePool="true" />
+     
+     <bean id="redisTemplate" class="org.springframework.data.redis.core.RedisTemplate"
+          p:connectionFactory-ref="redisConnectionFactory"
+          p:keySerializer-ref="stringRedisSerializer"
+          p:valueSerializer-ref="jacksonJsonRedisSerializer"
+          p:hashKeySerializer-ref="stringRedisSerializer"
+          p:hashValueSerializer-ref="jacksonJsonRedisSerializer" />
+</beans>
